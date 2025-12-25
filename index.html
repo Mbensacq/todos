@@ -1,100 +1,124 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProTask Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProTask Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-    <div class="app-container">
-        <nav class="sidebar" aria-label="Navigation principale">
-            <div class="logo">
-                <i class="fa-solid fa-layer-group"></i>
-                <span>ProTask</span>
-            </div>
-            <ul class="menu">
-                <li id="filter-all" class="active"><i class="fa-solid fa-house"></i> Accueil</li>
-                <li id="filter-today"><i class="fa-solid fa-calendar"></i> Aujourd'hui</li>
-                <li id="filter-important"><i class="fa-solid fa-star"></i> Important</li>
-                <li id="filter-completed"><i class="fa-solid fa-check-double"></i> Terminées</li>
-                <li id="theme-toggle"><i class="fa-solid fa-moon"></i> Mode Sombre</li>
-            </ul>
-        </nav>
 
-        <main class="main-content">
-            <header>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <button id="burgerBtn" class="mobile-only" aria-label="Ouvrir le menu">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div>
-                        <h1 id="headerDate" style="text-transform: capitalize;">Chargement...</h1>
-                        <p style="color: var(--text-grey);">Voici tes objectifs.</p>
-                    </div>
-                </div>
-            </header>
+  <div class="app-container">
+    <nav class="sidebar">
+      <div class="logo">
+        <i class="fa-solid fa-layer-group"></i> ProTask
+      </div>
+      <ul class="menu">
+        <li id="filter-all" class="active"><i class="fa-solid fa-house"></i> Accueil</li>
+        <li id="filter-today"><i class="fa-solid fa-calendar"></i> À faire</li>
+        <li id="filter-important"><i class="fa-solid fa-star"></i> Important</li>
+        <li id="filter-completed"><i class="fa-solid fa-check-double"></i> Terminées</li>
+        <li id="theme-toggle" style="margin-top: auto;"><i class="fa-solid fa-moon"></i> Mode Sombre</li>
+      </ul>
+    </nav>
 
-            <section class="stats-container" aria-label="Statistiques des tâches">
-                <div class="card stat-card">
-                    <div class="stat-icon bg-blue"><i class="fa-solid fa-list-check" aria-hidden="true"></i></div>
-                    <div>
-                        <h3>Total</h3>
-                        <p id="totalCount">0</p>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-icon bg-orange"><i class="fa-solid fa-clock" aria-hidden="true"></i></div>
-                    <div>
-                        <h3>En cours</h3>
-                        <p id="pendingCount">0</p>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="stat-icon bg-green"><i class="fa-solid fa-trophy" aria-hidden="true"></i></div>
-                    <div>
-                        <h3>Terminées</h3>
-                        <p id="doneCount">0</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="input-section card" aria-label="Ajouter une tâche">
-                <input type="text" id="taskInput" placeholder="Nouvelle tâche..." aria-label="Contenu de la tâche">
-                <input type="date" id="dateInput" aria-label="Date limite">
-                <select id="priorityInput" aria-label="Priorité">
-                    <option value="low">Normal</option>
-                    <option value="medium">Important</option>
-                    <option value="high">Urgent</option>
-                </select>
-                <button id="addBtn" type="button"><i class="fa-solid fa-plus"></i><span>Ajouter</span></button>
-            </section>
-
-            <section class="tasks-wrapper" aria-label="Liste des tâches">
-                <div class="section-heading">
-                    <h2>Tâches Récentes</h2>
-                    <p class="section-subtitle">Gardez le cap sur vos priorités du jour.</p>
-                </div>
-                <ul id="taskList" class="task-list"></ul>
-            </section>
-        </main>
-    </div>
-
-    <div id="mobileOverlay" class="overlay-mobile"></div>
-
-    <div id="confirmationModal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>🗑️ Suppression</h3>
-            <p>Es-tu sûr de vouloir supprimer cette tâche définitivement ?</p>
-            <div class="modal-buttons">
-                <button id="cancelBtn" class="btn-cancel">Annuler</button>
-                <button id="confirmBtn" class="btn-confirm">Oui, supprimer</button>
-            </div>
+    <main class="main-content">
+      <header>
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <button id="burgerBtn" class="mobile-only"><i class="fa-solid fa-bars"></i></button>
+          <div>
+            <h1 id="headerDate" style="text-transform: capitalize;">Chargement...</h1>
+            <p style="color: var(--text-grey);">Voici tes objectifs.</p>
+          </div>
         </div>
-    </div>
+      </header>
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-    <script src="script.js" defer></script>
+      <div class="stats-container">
+        <div class="card stat-card">
+          <div class="stat-icon bg-blue"><i class="fa-solid fa-list-check"></i></div>
+          <div>
+            <h3>Total</h3>
+            <p id="totalCount">0</p>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon bg-orange"><i class="fa-solid fa-clock"></i></div>
+          <div>
+            <h3>En cours</h3>
+            <p id="pendingCount">0</p>
+          </div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon bg-green"><i class="fa-solid fa-trophy"></i></div>
+          <div>
+            <h3>Terminées</h3>
+            <p id="doneCount">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section card">
+        <div class="input-row-top">
+          <input type="text" id="taskInput" placeholder="Nouvelle tâche stratégique...">
+          <input type="date" id="dateInput">
+          <select id="priorityInput">
+            <option value="low">Normal</option>
+            <option value="medium">Important</option>
+            <option value="high">Urgent</option>
+          </select>
+        </div>
+        <textarea id="descInput" placeholder="Description (facultatif) - Cliquez pour ajouter des détails..."
+          rows="1"></textarea>
+
+        <button id="addBtn"><i class="fa-solid fa-plus"></i> Ajouter la tâche</button>
+      </div>
+
+      <div class="tasks-wrapper">
+        <h2>Tâches Récentes</h2>
+        <ul id="taskList" class="task-list">
+        </ul>
+      </div>
+    </main>
+  </div>
+
+  <div id="confirmationModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3>🗑️ Suppression</h3>
+      <p>Es-tu sûr de vouloir supprimer cette tâche définitivement ?</p>
+      <div class="modal-buttons">
+        <button id="cancelBtn" class="btn-cancel">Annuler</button>
+        <button id="confirmBtn" class="btn-confirm">Oui, supprimer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3>✏️ Modifier la tâche</h3>
+      <input type="text" id="editTitle" class="full-width-input" placeholder="Titre">
+      <textarea id="editDesc" class="full-width-input" rows="3" placeholder="Description"></textarea>
+      <div class="edit-options">
+        <input type="date" id="editDate">
+        <select id="editPriority">
+          <option value="low">Normal</option>
+          <option value="medium">Important</option>
+          <option value="high">Urgent</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button id="cancelEditBtn" class="btn-cancel">Annuler</button>
+        <button id="saveEditBtn" class="btn-primary">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="mobileOverlay" class="overlay-mobile"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script src="script.js"></script>
 </body>
+
 </html>

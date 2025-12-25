@@ -1,10 +1,13 @@
+// --- 1. SÉLECTION DOM ---
 const taskInput = document.getElementById("taskInput");
+const descInput = document.getElementById("descInput"); // Nouveau
 const dateInput = document.getElementById("dateInput");
 const priorityInput = document.getElementById("priorityInput");
 const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
 const listTitle = document.querySelector(".tasks-wrapper h2");
 
+// Stats & Filtres
 const totalSpan = document.getElementById("totalCount");
 const pendingSpan = document.getElementById("pendingCount");
 const doneSpan = document.getElementById("doneCount");
@@ -15,32 +18,38 @@ const filterButtons = {
   completed: document.getElementById("filter-completed"),
 };
 
-const modal = document.getElementById("confirmationModal");
-const confirmBtn = document.getElementById("confirmBtn");
-const cancelBtn = document.getElementById("cancelBtn");
-let taskToDeleteId = null;
+// Modales
+const confirmModal = document.getElementById("confirmationModal");
+const editModal = document.getElementById("editModal"); // Nouveau
+let currentActionId = null; // ID utilisé pour supression OU édition
 
+// --- 2. STATE ---
 let tasks = JSON.parse(localStorage.getItem("proTask_db")) || [];
 let currentFilter = "all";
 
 document.addEventListener("DOMContentLoaded", () => {
   dateInput.valueAsDate = new Date();
+  updateHeaderDate();
   renderTasks();
   updateStats();
   setupFilters();
 });
 
+// --- 3. FONCTIONS PRINCIPALES ---
+
 function addTask() {
   const text = taskInput.value.trim();
+  const desc = descInput.value.trim();
   const priority = priorityInput.value;
   const date = dateInput.value;
 
-  if (text === "") return alert("Ajoute du texte !");
+  if (text === "") return alert("Le titre est obligatoire !");
 
   const newTask = {
     id: Date.now(),
     text: text,
-    priority,
+    description: desc, // On sauvegarde la description
+    priority: priority,
     dueDate: date,
     completed: false,
   };
@@ -54,19 +63,26 @@ function addTask() {
     updateStats();
   }
 
+  // Reset Form
   taskInput.value = "";
+  descInput.value = ""; // Reset description
   dateInput.valueAsDate = new Date();
-
   taskInput.focus();
 }
 
 function renderTasks() {
   taskList.innerHTML = "";
-  const todayStr = getTodayKey();
+  const todayStr = new Date().toISOString().split("T")[0];
 
   const filteredTasks = tasks.filter((task) => {
     if (currentFilter === "all") return true;
-    if (currentFilter === "today") return isDueToday(task, todayStr);
+    // LOGIQUE "À FAIRE" : Aujourd'hui + Retards
+    if (currentFilter === "today") {
+      return (
+        task.dueDate === todayStr ||
+        (task.dueDate < todayStr && !task.completed)
+      );
+    }
     if (currentFilter === "important") return task.priority === "high";
     if (currentFilter === "completed") return task.completed;
   });
@@ -74,7 +90,12 @@ function renderTasks() {
   updateListTitle(filteredTasks.length);
 
   if (filteredTasks.length === 0) {
-    taskList.innerHTML = `<p style="text-align:center; color:var(--text-grey); margin-top:20px;">Aucune tâche ici.</p>`;
+    // Empty State joli
+    taskList.innerHTML = `
+            <div style="text-align:center; padding: 40px; color:var(--text-grey);">
+                <i class="fa-solid fa-mug-hot" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                <p>Aucune tâche ici. Profite de ta journée !</p>
+            </div>`;
     return;
   }
 
@@ -86,28 +107,51 @@ function renderTasks() {
     }`;
     li.setAttribute("data-id", task.id);
 
+    // Calcul du retard
+    const isOverdue = task.dueDate < todayStr && !task.completed;
     const dateDisplay = task.dueDate
       ? new Date(task.dueDate).toLocaleDateString("fr-FR")
-      : "Aucune date";
+      : "";
+    const overdueBadge = isOverdue
+      ? `<span class="badge-overdue">En retard</span>`
+      : "";
+    const descIcon = task.description
+      ? `<i class="fa-solid fa-align-left" style="font-size: 0.7rem; margin-left:5px; opacity:0.7;"></i>`
+      : "";
 
     li.innerHTML = `
-            <div class="task-content">
-                <div class="task-text">
-                    ${task.text}
-                    <div style="font-size: 0.75rem; color: var(--text-grey); margin-top: 4px;">
-                        <i class="fa-regular fa-calendar"></i> ${dateDisplay}
+            <div class="task-header">
+                <div class="task-content" onclick="toggleDesc(${task.id})">
+                    <div class="task-text">
+                        ${task.text} ${descIcon}
+                    </div>
+                    <div class="task-meta">
+                        <span><i class="fa-regular fa-calendar"></i> ${dateDisplay}</span>
+                        ${overdueBadge}
                     </div>
                 </div>
+                <div class="task-actions">
+                    <button class="check" onclick="toggleTask(event, ${
+                      task.id
+                    })">
+                        <i class="fa-solid ${
+                          task.completed ? "fa-rotate-left" : "fa-check"
+                        }"></i>
+                    </button>
+                    <button class="edit" onclick="openEditModal(${task.id})">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="delete" onclick="confirmDelete(${task.id})">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
             </div>
-            <div class="task-actions">
-                <button class="check" onclick="toggleTask(event, ${task.id})">
-                    <i class="fa-solid ${
-                      task.completed ? "fa-rotate-left" : "fa-check"
-                    }"></i>
-                </button>
-                <button class="delete" onclick="deleteTask(${task.id})">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+            <div id="desc-${task.id}" class="task-desc">
+                ${
+                  task.description
+                    ? task.description.replace(/\n/g, "<br>")
+                    : "Aucune description."
+                }
             </div>
         `;
     addDragEvents(li);
@@ -115,6 +159,90 @@ function renderTasks() {
   });
 }
 
+// --- 4. INTERACTIONS NOUVELLES ---
+
+// Ouvrir/Fermer la description
+window.toggleDesc = function (id) {
+  const descDiv = document.getElementById(`desc-${id}`);
+  descDiv.classList.toggle("show");
+};
+
+// Ouvrir la modale d'édition
+window.openEditModal = function (id) {
+  const task = tasks.find((t) => t.id === id);
+  if (!task) return;
+
+  currentActionId = id;
+  document.getElementById("editTitle").value = task.text;
+  document.getElementById("editDesc").value = task.description || "";
+  document.getElementById("editDate").value = task.dueDate;
+  document.getElementById("editPriority").value = task.priority;
+
+  editModal.classList.add("active");
+};
+
+// Sauvegarder l'édition
+document.getElementById("saveEditBtn").addEventListener("click", () => {
+  if (currentActionId === null) return;
+
+  const task = tasks.find((t) => t.id === currentActionId);
+  if (task) {
+    task.text = document.getElementById("editTitle").value;
+    task.description = document.getElementById("editDesc").value;
+    task.dueDate = document.getElementById("editDate").value;
+    task.priority = document.getElementById("editPriority").value;
+
+    saveData();
+    renderTasks();
+    updateStats();
+    editModal.classList.remove("active");
+    currentActionId = null;
+  }
+});
+
+document.getElementById("cancelEditBtn").addEventListener("click", () => {
+  editModal.classList.remove("active");
+  currentActionId = null;
+});
+
+// --- 5. LOGIQUE EXISTANTE (Confettis, Delete, Drag, etc.) ---
+
+// Delete Modal
+window.confirmDelete = function (id) {
+  currentActionId = id;
+  confirmModal.classList.add("active");
+};
+document.getElementById("confirmBtn").addEventListener("click", () => {
+  if (currentActionId) {
+    tasks = tasks.filter((t) => t.id !== currentActionId);
+    saveData();
+    renderTasks();
+    updateStats();
+    confirmModal.classList.remove("active");
+    currentActionId = null;
+  }
+});
+document.getElementById("cancelBtn").addEventListener("click", () => {
+  confirmModal.classList.remove("active");
+  currentActionId = null;
+});
+
+// Toggle (Check) + Confetti
+window.toggleTask = function (event, id) {
+  if (event) event.stopPropagation();
+  const task = tasks.find((t) => t.id === id);
+  if (task) {
+    task.completed = !task.completed;
+    if (task.completed && event) {
+      const x = event.clientX / window.innerWidth;
+      const y = event.clientY / window.innerHeight;
+      triggerConfetti(x, y);
+    }
+    saveData();
+    renderTasks();
+    updateStats();
+  }
+};
 function triggerConfetti(x, y) {
   confetti({
     particleCount: 25,
@@ -128,22 +256,7 @@ function triggerConfetti(x, y) {
   });
 }
 
-window.toggleTask = function (event, id) {
-  if (event) event.stopPropagation();
-  const task = tasks.find((t) => t.id === id);
-  if (task) {
-    task.completed = !task.completed;
-    if (task.completed && event) {
-      const xNormalized = event.clientX / window.innerWidth;
-      const yNormalized = event.clientY / window.innerHeight;
-      triggerConfetti(xNormalized, yNormalized);
-    }
-    saveData();
-    renderTasks();
-    updateStats();
-  }
-};
-
+// Utilitaires
 function saveData() {
   localStorage.setItem("proTask_db", JSON.stringify(tasks));
 }
@@ -154,20 +267,10 @@ function updateStats() {
   doneSpan.innerText = completed;
   pendingSpan.innerText = total - completed;
 }
-function getTodayKey() {
-  return new Date().toLocaleDateString("fr-CA");
-}
-function isDueToday(task, todayStr) {
-  if (task.dueDate) return task.dueDate === todayStr;
-  return isTimestampToday(task.id, todayStr);
-}
-function isTimestampToday(timestamp, todayStr) {
-  return new Date(timestamp).toLocaleDateString("fr-CA") === todayStr;
-}
 function updateListTitle(count) {
   const titles = {
     all: "Toutes les tâches",
-    today: "À faire aujourd'hui",
+    today: "À faire (incl. retards)",
     important: "Urgent",
     completed: "Terminées",
   };
@@ -184,22 +287,18 @@ function setupFilters() {
   }
 }
 function updateHeaderDate() {
-  const dateElement = document.getElementById("headerDate");
   const now = new Date();
-  const dateString = now.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  const timeString = now.toLocaleTimeString("fr-FR", {
+  document.getElementById("headerDate").innerText = `${now.toLocaleDateString(
+    "fr-FR",
+    { weekday: "long", day: "numeric", month: "long" }
+  )} • ${now.toLocaleTimeString("fr-FR", {
     hour: "2-digit",
     minute: "2-digit",
-  });
-  dateElement.innerText = `${dateString} • ${timeString}`;
+  })}`;
 }
-
-updateHeaderDate();
 setInterval(updateHeaderDate, 1000);
+
+// Drag & Drop
 function addDragEvents(li) {
   li.addEventListener("dragstart", () => li.classList.add("dragging"));
   li.addEventListener("dragend", () => {
@@ -237,42 +336,29 @@ function updateOrder() {
   tasks = newOrderIds.map((id) => tasks.find((t) => t.id === id));
   saveData();
 }
-window.deleteTask = function (id) {
-  taskToDeleteId = id;
-  modal.classList.add("active");
-};
 
-cancelBtn.addEventListener("click", () => {
-  modal.classList.remove("active");
-  taskToDeleteId = null;
-});
-
-confirmBtn.addEventListener("click", () => {
-  if (taskToDeleteId !== null) {
-    tasks = tasks.filter((t) => t.id !== taskToDeleteId);
-    saveData();
-    renderTasks();
-    updateStats();
-    modal.classList.remove("active");
-    taskToDeleteId = null;
-  }
-});
-
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) {
-    modal.classList.remove("active");
-    taskToDeleteId = null;
-  }
-});
+// Events Initiaux
 addBtn.addEventListener("click", addTask);
-taskInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") addTask();
+// Mobile Menu
+const burgerBtn = document.getElementById("burgerBtn");
+const sidebar = document.querySelector(".sidebar");
+const mobileOverlay = document.getElementById("mobileOverlay");
+function toggleMenu() {
+  sidebar.classList.toggle("active");
+  mobileOverlay.classList.toggle("active");
+}
+burgerBtn.addEventListener("click", toggleMenu);
+mobileOverlay.addEventListener("click", toggleMenu);
+document.querySelectorAll(".menu li").forEach((item) => {
+  item.addEventListener("click", () => {
+    if (window.innerWidth < 768) toggleMenu();
+  });
 });
 
+// Dark Mode logic
 const themeBtn = document.getElementById("theme-toggle");
 const body = document.body;
-const currentTheme = localStorage.getItem("proTask_theme");
-if (currentTheme === "dark") {
+if (localStorage.getItem("proTask_theme") === "dark") {
   body.setAttribute("data-theme", "dark");
   themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> Mode Clair';
 }
@@ -286,23 +372,4 @@ themeBtn.addEventListener("click", () => {
     localStorage.setItem("proTask_theme", "dark");
     themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> Mode Clair';
   }
-});
-
-const burgerBtn = document.getElementById("burgerBtn");
-const sidebar = document.querySelector(".sidebar");
-const mobileOverlay = document.getElementById("mobileOverlay");
-
-function toggleMenu() {
-  sidebar.classList.toggle("active");
-  mobileOverlay.classList.toggle("active");
-}
-
-burgerBtn.addEventListener("click", toggleMenu);
-mobileOverlay.addEventListener("click", toggleMenu);
-document.querySelectorAll(".menu li").forEach((item) => {
-  item.addEventListener("click", () => {
-    if (window.innerWidth < 768) {
-      toggleMenu();
-    }
-  });
 });
