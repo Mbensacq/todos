@@ -172,7 +172,13 @@ function renderTasks() {
   if (activeTasks.length > 0) {
     activeTasks.forEach((t) => taskList.appendChild(createTaskElement(t)));
   } else if (completedTasks.length === 0) {
-    taskList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-grey);">Aucune tâche.</div>`;
+    // Le retour de la tasse de café ! ☕
+    taskList.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-mug-hot"></i></div>
+            <p>Aucune tâche ici. Profite de ta journée !</p>
+        </div>
+    `;
   }
 
   if (completedTasks.length > 0) {
