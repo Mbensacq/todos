@@ -26,6 +26,22 @@
   box-sizing: border-box;
   font-family: "Inter", sans-serif;
 }
+/* --- UX : NON-SÉLECTION (Effet App Native) --- */
+button,
+.menu li,
+.stat-card,
+.fa-solid,
+.fa-regular,
+.check,
+.delete,
+.edit,
+.tasks-separator,
+#headerDate {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 body {
   background-color: var(--bg-color);
   color: var(--text-dark);
@@ -358,7 +374,17 @@ textarea {
 }
 .edit-options {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+}
+
+.edit-options input,
+.edit-options select {
+  flex: 1;
+  min-width: 120px;
+  width: auto;
 }
 .mobile-only,
 .overlay-mobile {
@@ -398,4 +424,104 @@ textarea {
   .stats-container {
     grid-template-columns: 1fr;
   }
+  .input-section {
+    display: none;
+  }
+  header h1 {
+    font-size: 1.2rem;
+  }
+  .btn-circle-primary {
+    display: flex;
+  }
+}
+
+
+
+/* --- SÉPARATEUR & BULK DELETE --- */
+.tasks-separator {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin: 20px 0;
+  color: var(--text-grey);
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+.tasks-separator::before,
+.tasks-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+[data-theme="dark"] .tasks-separator::before,
+[data-theme="dark"] .tasks-separator::after {
+  background: #3a3b3c;
+}
+.select-checkbox {
+  display: none;
+  width: 20px;
+  height: 20px;
+  margin-right: 15px;
+  accent-color: var(--danger);
+  cursor: pointer;
+}
+.bulk-mode .select-checkbox {
+  display: block;
+}
+#bulkDeleteBtn {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--danger);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 50px;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+  border: none;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1000;
+}
+#bulkDeleteBtn.visible {
+  transform: translateX(-50%) translateY(0);
+}
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-grey);
+  cursor: pointer;
+  transition: 0.2s;
+  padding: 5px;
+}
+.btn-icon:hover,
+.btn-icon.active {
+  color: var(--primary);
+}
+
+/* --- Bouton Mobile Ajouter --- */
+.btn-circle-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.4);
+  transition: transform 0.2s;
+}
+.btn-circle-primary:active {
+  transform: scale(0.94);
 }

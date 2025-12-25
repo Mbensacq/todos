@@ -1,6 +1,7 @@
 const taskInput = document.getElementById("taskInput");
 const descInput = document.getElementById("descInput");
 const dateInput = document.getElementById("dateInput");
+const recurrenceInput = document.getElementById("recurrenceInput");
 const priorityInput = document.getElementById("priorityInput");
 const addBtn = document.getElementById("addBtn");
 const taskList = document.getElementById("taskList");
@@ -18,7 +19,15 @@ const filterButtons = {
 
 const confirmModal = document.getElementById("confirmationModal");
 const editModal = document.getElementById("editModal");
+const editRecurrence = document.getElementById("editRecurrence");
+const toggleBulkBtn = document.getElementById("toggleBulkBtn");
+const bulkDeleteBtn = document.getElementById("bulkDeleteBtn");
+const selectedCountSpan = document.getElementById("selectedCount");
+const mobileAddBtn = document.getElementById("mobileAddBtn");
 let currentActionId = null;
+
+let isBulkMode = false;
+let selectedIds = new Set();
 
 let tasks = JSON.parse(localStorage.getItem("proTask_db")) || [];
 let currentFilter = "all";
@@ -36,6 +45,7 @@ function addTask() {
   const desc = descInput.value.trim();
   const priority = priorityInput.value;
   const date = dateInput.value;
+  const recurrence = recurrenceInput.value;
 
   if (text === "") return alert("Le titre est obligatoire !");
 
@@ -45,6 +55,7 @@ function addTask() {
     description: desc,
     priority: priority,
     dueDate: date,
+    recurrence: recurrence,
     completed: false,
   };
 
@@ -60,6 +71,7 @@ function addTask() {
   taskInput.value = "";
   descInput.value = "";
   dateInput.valueAsDate = new Date();
+  recurrenceInput.value = "none";
   taskInput.focus();
 }
 
@@ -67,7 +79,7 @@ function renderTasks() {
   taskList.innerHTML = "";
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const filteredTasks = tasks.filter((task) => {
+  const filtered = tasks.filter((task) => {
     if (currentFilter === "all") return true;
     if (currentFilter === "today") {
       return (
@@ -79,44 +91,53 @@ function renderTasks() {
     if (currentFilter === "completed") return task.completed;
   });
 
-  updateListTitle(filteredTasks.length);
+  const activeTasks = [];
+  const completedTasks = [];
 
-  if (filteredTasks.length === 0) {
-    taskList.innerHTML = `
-            <div style="text-align:center; padding: 40px; color:var(--text-grey);">
-                <i class="fa-solid fa-mug-hot" style="font-size: 2rem; margin-bottom: 10px;"></i>
-                <p>Aucune tâche ici. Profite de ta journée !</p>
-            </div>`;
-    return;
-  }
+  filtered.forEach((task) => {
+    if (task.completed) completedTasks.push(task);
+    else activeTasks.push(task);
+  });
 
-  filteredTasks.forEach((task) => {
+  const createTaskElement = (task) => {
     const li = document.createElement("li");
     li.setAttribute("draggable", "true");
     li.className = `task-item priority-${task.priority} ${
       task.completed ? "completed" : ""
-    }`;
+    } ${isBulkMode ? "bulk-mode" : ""}`;
     li.setAttribute("data-id", task.id);
 
-    const isOverdue = task.dueDate < todayStr && !task.completed;
     const dateDisplay = task.dueDate
       ? new Date(task.dueDate).toLocaleDateString("fr-FR")
       : "";
+    const isOverdue = task.dueDate && task.dueDate < todayStr && !task.completed;
     const overdueBadge = isOverdue
       ? `<span class="badge-overdue">En retard</span>`
       : "";
     const descIcon = task.description
       ? `<i class="fa-solid fa-align-left" style="font-size: 0.7rem; margin-left:5px; opacity:0.7;"></i>`
       : "";
+    const recurrenceIcon =
+      task.recurrence && task.recurrence !== "none"
+        ? task.recurrence === "daily"
+          ? "🔁"
+          : "📅"
+        : "";
+
+    const isSelected = selectedIds.has(task.id);
 
     li.innerHTML = `
+            <input type="checkbox" class="select-checkbox" ${
+              isSelected ? "checked" : ""
+            } onclick="toggleSelection(event, ${task.id})">
+
             <div class="task-header">
                 <div class="task-content" onclick="toggleDesc(${task.id})">
                     <div class="task-text">
                         ${task.text} ${descIcon}
                     </div>
                     <div class="task-meta">
-                        <span><i class="fa-regular fa-calendar"></i> ${dateDisplay}</span>
+                        <span><i class="fa-regular fa-calendar"></i> ${dateDisplay} ${recurrenceIcon}</span>
                         ${overdueBadge}
                     </div>
                 </div>
@@ -145,8 +166,36 @@ function renderTasks() {
             </div>
         `;
     addDragEvents(li);
-    taskList.appendChild(li);
-  });
+    return li;
+  };
+
+  if (activeTasks.length > 0) {
+    activeTasks.forEach((t) => taskList.appendChild(createTaskElement(t)));
+  } else if (completedTasks.length === 0) {
+    taskList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-grey);">Aucune tâche.</div>`;
+  }
+
+  if (completedTasks.length > 0) {
+    if (activeTasks.length > 0) {
+      const separator = document.createElement("div");
+      separator.className = "tasks-separator";
+      if (isBulkMode) {
+        const allSelected = completedTasks.every((t) => selectedIds.has(t.id));
+        separator.innerHTML = `
+          <input type="checkbox" class="select-checkbox" style="display:block; margin:0;" ${
+            allSelected ? "checked" : ""
+          } onclick="toggleAllCompleted(this.checked)">
+          Terminées
+        `;
+      } else {
+        separator.innerText = "Terminées";
+      }
+      taskList.appendChild(separator);
+    }
+    completedTasks.forEach((t) => taskList.appendChild(createTaskElement(t)));
+  }
+
+  updateListTitle(filtered.length);
 }
 
 window.toggleDesc = function (id) {
@@ -155,6 +204,9 @@ window.toggleDesc = function (id) {
 };
 
 window.openEditModal = function (id) {
+  document.querySelector("#editModal h3").innerText = "✏️ Modifier la tâche";
+  document.getElementById("saveEditBtn").innerText = "Sauvegarder";
+
   const task = tasks.find((t) => t.id === id);
   if (!task) return;
 
@@ -162,27 +214,50 @@ window.openEditModal = function (id) {
   document.getElementById("editTitle").value = task.text;
   document.getElementById("editDesc").value = task.description || "";
   document.getElementById("editDate").value = task.dueDate;
+  editRecurrence.value = task.recurrence || "none";
   document.getElementById("editPriority").value = task.priority;
 
   editModal.classList.add("active");
 };
 
 document.getElementById("saveEditBtn").addEventListener("click", () => {
-  if (currentActionId === null) return;
+  const title = document.getElementById("editTitle").value.trim();
+  if (!title) return alert("Le titre est obligatoire !");
 
-  const task = tasks.find((t) => t.id === currentActionId);
-  if (task) {
-    task.text = document.getElementById("editTitle").value;
-    task.description = document.getElementById("editDesc").value;
-    task.dueDate = document.getElementById("editDate").value;
-    task.priority = document.getElementById("editPriority").value;
+  const desc = document.getElementById("editDesc").value;
+  const date = document.getElementById("editDate").value;
+  const recurrenceVal = editRecurrence.value;
+  const priorityVal = document.getElementById("editPriority").value;
 
-    saveData();
-    renderTasks();
-    updateStats();
-    editModal.classList.remove("active");
-    currentActionId = null;
+  if (currentActionId === "CREATE_NEW") {
+    const newTask = {
+      id: Date.now(),
+      text: title,
+      description: desc,
+      priority: priorityVal,
+      dueDate: date,
+      recurrence: recurrenceVal,
+      completed: false,
+    };
+    tasks.unshift(newTask);
+  } else if (currentActionId !== null) {
+    const task = tasks.find((t) => t.id === currentActionId);
+    if (task) {
+      task.text = title;
+      task.description = desc;
+      task.dueDate = date;
+      task.recurrence = recurrenceVal;
+      task.priority = priorityVal;
+    }
+  } else {
+    return;
   }
+
+  saveData();
+  renderTasks();
+  updateStats();
+  editModal.classList.remove("active");
+  currentActionId = null;
 });
 
 document.getElementById("cancelEditBtn").addEventListener("click", () => {
@@ -190,19 +265,47 @@ document.getElementById("cancelEditBtn").addEventListener("click", () => {
   currentActionId = null;
 });
 
+// --- Ajout mobile via la modale d'édition ---
+if (mobileAddBtn) {
+  mobileAddBtn.addEventListener("click", () => {
+    document.querySelector("#editModal h3").innerText = "✨ Nouvelle tâche";
+    document.getElementById("saveEditBtn").innerText = "Ajouter";
+
+    document.getElementById("editTitle").value = "";
+    document.getElementById("editDesc").value = "";
+    document.getElementById("editDate").valueAsDate = new Date();
+    editRecurrence.value = "none";
+    document.getElementById("editPriority").value = "low";
+
+    currentActionId = "CREATE_NEW";
+    editModal.classList.add("active");
+
+    setTimeout(() => document.getElementById("editTitle").focus(), 100);
+  });
+}
+
 window.confirmDelete = function (id) {
+  document.querySelector(".modal-box h3").innerText = "🗑️ Suppression";
+  document.querySelector(".modal-box p").innerText =
+    "Es-tu sûr de vouloir supprimer cette tâche définitivement ?";
   currentActionId = id;
   confirmModal.classList.add("active");
 };
 document.getElementById("confirmBtn").addEventListener("click", () => {
-  if (currentActionId) {
+  if (currentActionId === "BULK_DELETE") {
+    tasks = tasks.filter((t) => !selectedIds.has(t.id));
+    selectedIds.clear();
+    isBulkMode = false;
+    toggleBulkBtn.classList.remove("active");
+    bulkDeleteBtn.classList.remove("visible");
+  } else if (currentActionId !== null) {
     tasks = tasks.filter((t) => t.id !== currentActionId);
-    saveData();
-    renderTasks();
-    updateStats();
-    confirmModal.classList.remove("active");
-    currentActionId = null;
   }
+  saveData();
+  renderTasks();
+  updateStats();
+  confirmModal.classList.remove("active");
+  currentActionId = null;
 });
 document.getElementById("cancelBtn").addEventListener("click", () => {
   confirmModal.classList.remove("active");
@@ -212,18 +315,46 @@ document.getElementById("cancelBtn").addEventListener("click", () => {
 window.toggleTask = function (event, id) {
   if (event) event.stopPropagation();
   const task = tasks.find((t) => t.id === id);
+
   if (task) {
-    task.completed = !task.completed;
-    if (task.completed && event) {
-      const x = event.clientX / window.innerWidth;
-      const y = event.clientY / window.innerHeight;
-      triggerConfetti(x, y);
+    const isCompleting = !task.completed;
+    task.completed = isCompleting;
+
+    if (isCompleting) {
+      if (event) {
+        const x = event.clientX / window.innerWidth;
+        const y = event.clientY / window.innerHeight;
+        triggerConfetti(x, y);
+      }
+
+      if (task.recurrence && task.recurrence !== "none") {
+        createNextRecurringTask(task);
+      }
     }
+
     saveData();
     renderTasks();
     updateStats();
   }
 };
+function createNextRecurringTask(originalTask) {
+  const nextDate = new Date();
+
+  if (originalTask.recurrence === "daily") {
+    nextDate.setDate(nextDate.getDate() + 1);
+  } else if (originalTask.recurrence === "weekly") {
+    nextDate.setDate(nextDate.getDate() + 7);
+  }
+
+  const newTask = {
+    ...originalTask,
+    id: Date.now(),
+    dueDate: nextDate.toISOString().split("T")[0],
+    completed: false,
+  };
+
+  tasks.unshift(newTask);
+}
 function triggerConfetti(x, y) {
   confetti({
     particleCount: 25,
@@ -316,6 +447,48 @@ function updateOrder() {
   saveData();
 }
 
+toggleBulkBtn.addEventListener("click", () => {
+  isBulkMode = !isBulkMode;
+  toggleBulkBtn.classList.toggle("active");
+  selectedIds.clear();
+  updateBulkUI();
+  renderTasks();
+});
+
+window.toggleSelection = function (event, id) {
+  if (event) event.stopPropagation();
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  updateBulkUI();
+};
+
+function updateBulkUI() {
+  selectedCountSpan.innerText = selectedIds.size;
+  if (selectedIds.size > 0) bulkDeleteBtn.classList.add("visible");
+  else bulkDeleteBtn.classList.remove("visible");
+}
+
+window.toggleAllCompleted = function (isChecked) {
+  const completedTasks = tasks.filter((t) => t.completed);
+  if (isChecked) {
+    completedTasks.forEach((t) => selectedIds.add(t.id));
+  } else {
+    completedTasks.forEach((t) => selectedIds.delete(t.id));
+  }
+  updateBulkUI();
+  renderTasks();
+};
+
+bulkDeleteBtn.addEventListener("click", () => {
+  if (selectedIds.size === 0) return;
+  document.querySelector(".modal-box h3").innerText = "🗑️ Suppression multiple";
+  document.querySelector(
+    ".modal-box p"
+  ).innerText = `Voulez-vous vraiment supprimer ces ${selectedIds.size} tâches ?`;
+  currentActionId = "BULK_DELETE";
+  confirmModal.classList.add("active");
+});
+
 addBtn.addEventListener("click", addTask);
 const burgerBtn = document.getElementById("burgerBtn");
 const sidebar = document.querySelector(".sidebar");
@@ -331,6 +504,53 @@ document.querySelectorAll(".menu li").forEach((item) => {
     if (window.innerWidth < 768) toggleMenu();
   });
 });
+
+// --- RACCOURCIS CLAVIER (Navigation & validation) ---
+const editTitleInput = document.getElementById("editTitle");
+const editDescInput = document.getElementById("editDesc");
+const editDateInput = document.getElementById("editDate");
+const editPriorityInput = document.getElementById("editPriority");
+const saveEditBtn = document.getElementById("saveEditBtn");
+
+if (taskInput) {
+  taskInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      descInput.focus();
+    }
+  });
+
+  [descInput, dateInput, recurrenceInput, priorityInput].forEach((input) => {
+    if (!input) return;
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        addBtn.click();
+      }
+    });
+  });
+}
+
+if (editTitleInput) {
+  editTitleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      editDescInput?.focus();
+    }
+  });
+
+  [editDescInput, editDateInput, editRecurrence, editPriorityInput].forEach(
+    (input) => {
+      if (!input) return;
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          saveEditBtn?.click();
+        }
+      });
+    }
+  );
+}
 
 const themeBtn = document.getElementById("theme-toggle");
 const body = document.body;

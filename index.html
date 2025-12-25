@@ -30,11 +30,22 @@
 
     <main class="main-content">
       <header>
-        <div style="display: flex; align-items: center; gap: 15px;">
-          <button id="burgerBtn" class="mobile-only"><i class="fa-solid fa-bars"></i></button>
-          <div>
-            <h1 id="headerDate" style="text-transform: capitalize;">Chargement...</h1>
-            <p style="color: var(--text-grey);">Voici tes objectifs.</p>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <button id="burgerBtn" class="mobile-only"><i class="fa-solid fa-bars"></i></button>
+            <div>
+              <h1 id="headerDate" style="text-transform: capitalize;">Chargement...</h1>
+              <p style="color: var(--text-grey);">Voici tes objectifs.</p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="mobileAddBtn" class="mobile-only btn-circle-primary" title="Ajouter une tâche">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+            <button id="toggleBulkBtn" class="btn-icon" title="Sélection multiple">
+              <i class="fa-solid fa-check-double"></i>
+            </button>
           </div>
         </div>
       </header>
@@ -66,12 +77,19 @@
       <div class="input-section card">
         <div class="input-row-top">
           <input type="text" id="taskInput" placeholder="Nouvelle tâche stratégique...">
-          <input type="date" id="dateInput">
-          <select id="priorityInput">
-            <option value="low">Normal</option>
-            <option value="medium">Important</option>
-            <option value="high">Urgent</option>
-          </select>
+          <div style="display:flex; gap:10px;">
+            <input type="date" id="dateInput">
+            <select id="recurrenceInput" style="width: auto;">
+              <option value="none">Une fois</option>
+              <option value="daily">Quotidien 🔁</option>
+              <option value="weekly">Hebdomadaire 📅</option>
+            </select>
+            <select id="priorityInput">
+              <option value="low">Normal</option>
+              <option value="medium">Important</option>
+              <option value="high">Urgent</option>
+            </select>
+          </div>
         </div>
         <textarea id="descInput" placeholder="Description (facultatif) - Cliquez pour ajouter des détails..."
           rows="1"></textarea>
@@ -105,6 +123,11 @@
       <textarea id="editDesc" class="full-width-input" rows="3" placeholder="Description"></textarea>
       <div class="edit-options">
         <input type="date" id="editDate">
+          <select id="editRecurrence">
+            <option value="none">Une fois</option>
+            <option value="daily">Quotidien 🔁</option>
+            <option value="weekly">Hebdomadaire 📅</option>
+          </select>
         <select id="editPriority">
           <option value="low">Normal</option>
           <option value="medium">Important</option>
@@ -117,6 +140,10 @@
       </div>
     </div>
   </div>
+
+  <button id="bulkDeleteBtn">
+    <i class="fa-solid fa-trash"></i> Supprimer la sélection (<span id="selectedCount">0</span>)
+  </button>
 
   <div id="mobileOverlay" class="overlay-mobile"></div>
   <script>
