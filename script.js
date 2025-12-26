@@ -102,15 +102,15 @@ function renderTasks() {
   const createTaskElement = (task) => {
     const li = document.createElement("li");
     li.setAttribute("draggable", "true");
-    li.className = `task-item priority-${task.priority} ${
-      task.completed ? "completed" : ""
-    } ${isBulkMode ? "bulk-mode" : ""}`;
+    li.className = `task-item priority-${task.priority} ${task.completed ? "completed" : ""
+      } ${isBulkMode ? "bulk-mode" : ""}`;
     li.setAttribute("data-id", task.id);
 
     const dateDisplay = task.dueDate
       ? new Date(task.dueDate).toLocaleDateString("fr-FR")
       : "";
-    const isOverdue = task.dueDate && task.dueDate < todayStr && !task.completed;
+    const isOverdue =
+      task.dueDate && task.dueDate < todayStr && !task.completed;
     const overdueBadge = isOverdue
       ? `<span class="badge-overdue">En retard</span>`
       : "";
@@ -127,9 +127,8 @@ function renderTasks() {
     const isSelected = selectedIds.has(task.id);
 
     li.innerHTML = `
-            <input type="checkbox" class="select-checkbox" ${
-              isSelected ? "checked" : ""
-            } onclick="toggleSelection(event, ${task.id})">
+            <input type="checkbox" class="select-checkbox" ${isSelected ? "checked" : ""
+      } onclick="toggleSelection(event, ${task.id})">
 
             <div class="task-header">
                 <div class="task-content" onclick="toggleDesc(${task.id})">
@@ -142,12 +141,10 @@ function renderTasks() {
                     </div>
                 </div>
                 <div class="task-actions">
-                    <button class="check" onclick="toggleTask(event, ${
-                      task.id
-                    })">
-                        <i class="fa-solid ${
-                          task.completed ? "fa-rotate-left" : "fa-check"
-                        }"></i>
+                    <button class="check" onclick="toggleTask(event, ${task.id
+      })">
+                        <i class="fa-solid ${task.completed ? "fa-rotate-left" : "fa-check"
+      }"></i>
                     </button>
                     <button class="edit" onclick="openEditModal(${task.id})">
                         <i class="fa-solid fa-pen"></i>
@@ -158,11 +155,10 @@ function renderTasks() {
                 </div>
             </div>
             <div id="desc-${task.id}" class="task-desc">
-                ${
-                  task.description
-                    ? task.description.replace(/\n/g, "<br>")
-                    : "Aucune description."
-                }
+                ${task.description
+        ? task.description.replace(/\n/g, "<br>")
+        : "Aucune description."
+      }
             </div>
         `;
     addDragEvents(li);
@@ -188,8 +184,7 @@ function renderTasks() {
       if (isBulkMode) {
         const allSelected = completedTasks.every((t) => selectedIds.has(t.id));
         separator.innerHTML = `
-          <input type="checkbox" class="select-checkbox" style="display:block; margin:0;" ${
-            allSelected ? "checked" : ""
+          <input type="checkbox" class="select-checkbox" style="display:block; margin:0;" ${allSelected ? "checked" : ""
           } onclick="toggleAllCompleted(this.checked)">
           Terminées
         `;

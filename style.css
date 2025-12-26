@@ -622,30 +622,36 @@ textarea {
 
 /* --- EMPTY STATE (La tasse de café) --- */
 .empty-state {
-    text-align: center;
-    padding: 50px 20px;
-    color: var(--text-grey);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    opacity: 0.8;
-    animation: fadeIn 0.5s ease;
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-grey);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0.8;
+  animation: fadeIn 0.5s ease;
 }
 
 .empty-icon {
-    font-size: 3rem; /* On grossit l'icône */
-    margin-bottom: 10px;
-    color: #d1d5db; /* Gris très clair */
+  font-size: 3rem; /* On grossit l'icône */
+  margin-bottom: 10px;
+  color: #d1d5db; /* Gris très clair */
 }
 
 /* Ajustement pour le mode sombre */
 [data-theme="dark"] .empty-icon {
-    color: #4b5563; 
+  color: #4b5563;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 0.8; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.8;
+    transform: translateY(0);
+  }
 }
